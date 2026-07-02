@@ -259,6 +259,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     "",
     "답변 원칙:",
     "- 첫 문장에서 질문에 바로 답해. 서론·배경 설명·되묻기로 시작하지 마.",
+    "- 답변은 반드시 결론(수치 포함)으로 끝나야 해 — '더 찾아봐야겠어요' 같은 중간 계획이나 혼잣말로 끝내지 마.",
     "- 구체적으로 답해: 아는 숫자·금액·지명·단지명·기관명·절차를 자신 있게 딱 집어서 제시해. '경우에 따라 달라요', '~에서 확인하세요'로 얼버무리지 말고 대표값이나 범위를 먼저 말해.",
     "- 집값·요금·인구 같은 변동 수치도 구체적인 수치로 먼저 답하고, 맨 끝에 기준 시점과 확인처를 딱 한 줄만 붙여.",
     "- '얼마', '몇 명', '몇 %' 같은 수치 질문에는 답에 반드시 구체적인 숫자가 들어가야 해. 모르면 web_search로 찾아서라도 숫자를 제시해. 정확한 최신치를 못 찾으면 가장 가까운 공식 통계를 '○○년 기준'이라고 밝히고 제시해. 숫자 없이 기관 안내만 하고 끝내는 답은 금지야.",
@@ -280,7 +281,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     // Haiku 4.5는 구형 검색 도구만 지원해요
     var wsType = S.apiModel === "claude-haiku-4-5" ? "web_search_20250305" : "web_search_20260209";
     req.tools = [{
-      type: wsType, name: "web_search", max_uses: 3,
+      type: wsType, name: "web_search", max_uses: 2,
       user_location: { type: "approximate", city: "Gwangju", country: "KR", timezone: "Asia/Seoul" }
     }];
     return req;
@@ -318,13 +319,13 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
       }
       var reader = res.body.getReader();
       var dec = new TextDecoder();
-      var buf = "", text = "";
+      var buf = "", text = "", stop = null;
       function pump() {
         return reader.read().then(function (chunk) {
           armIdle();
           if (chunk.done) {
             clearTimeout(idleTimer);
-            return { text: text };
+            return { text: text, stop: stop };
           }
           buf += dec.decode(chunk.value, { stream: true });
           var lines = buf.split("\n");
@@ -337,6 +338,8 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
             if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
               text += ev.delta.text;
               if (onDelta) onDelta(text);
+            } else if (ev.type === "message_delta" && ev.delta && ev.delta.stop_reason) {
+              stop = ev.delta.stop_reason;
             } else if (ev.type === "error") {
               clearTimeout(idleTimer);
               var e3 = new Error((ev.error && ev.error.message) || "stream error");
@@ -355,7 +358,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     var hist = S.messages.slice(-12);
     while (hist.length && hist[0].role !== "user") hist.shift();
     var msgs = hist.map(function (m) { return { role: m.role === "bot" ? "assistant" : "user", content: m.text }; });
-    return claudeStream(msgs, onDelta).then(function (out) {
+    function finish(out) {
       // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
       var text = (out.text || "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
       if (!text) throw new Error("empty response");
@@ -369,6 +372,20 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
         text = lines.join("\n").trim();
       }
       return { text: text, dept: dept };
+    }
+    return claudeStream(msgs, onDelta).then(function (out) {
+      if (out.stop === "pause_turn") {
+        // 서버측 검색 라운드 한도로 중간에 멈춤 → 찾은 정보로 결론을 정리하는 재시도 1회
+        var lastQ = msgs[msgs.length - 1];
+        var retryMsgs = msgs.slice(0, -1).concat([{
+          role: "user",
+          content: String(lastQ.content) +
+            "\n\n(안내: 검색은 최대 1번만 사용하고, 이미 아는 정보와 함께 지금 바로 결론을 수치 중심으로 정리해서 답해줘)"
+        }]);
+        if (onDelta) onDelta("");
+        return claudeStream(retryMsgs, onDelta).then(finish);
+      }
+      return finish(out);
     });
   }
 
