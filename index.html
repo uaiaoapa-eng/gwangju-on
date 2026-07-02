@@ -147,6 +147,10 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
       t:"대형 폐기물은 이렇게 버려요.\n1. 자치구 홈페이지나 행정복지센터에서 배출 신고를 해요.\n2. 수수료를 내고 배출 스티커를 발급받아요. (소파 기준 5,000~8,000원)\n3. 스티커를 붙여 지정 장소에 내놓으면 수거해 가요." },
     { k:["주정차","불법주차","견인","단속","과태료","딱지"], d:"자치구 교통지도과",
       t:"불법 주정차는 안전신문고 앱으로 신고할 수 있어요.\n같은 위치에서 1분 간격으로 사진 2장을 찍어 올리면 현장 확인 없이 바로 처리돼요. 어린이보호구역·소화전 주변은 과태료가 가중돼요." },
+    { k:["전기요금","전기세","전기값","한전","누진"], d:"한국전력 광주전남본부",
+      t:"전기요금은 한국전력(한전)이 담당해요.\n· 조회·납부 — 한전:ON 앱이나 한전 사이버지점에서 바로 확인돼요\n· 문의 — 한전 고객센터 123 (국번 없이)\n· 여름철 누진구간 완화, 다자녀·복지 할인 같은 요금 감면도 신청할 수 있어요" },
+    { k:["집값","부동산","아파트값","시세","매매가","실거래"], d:"광주시 토지정보과",
+      t:"광주 집값은 동네·단지별 차이가 커요.\n· 정확한 가격 — 국토교통부 실거래가 공개시스템에서 아파트별 실제 거래가를 확인하는 게 가장 정확해요\n· 전통적으로 남구 봉선동, 광산구 수완지구 등이 시세가 높은 편이에요\n· 시세 흐름은 한국부동산원 주간 아파트 동향에서 볼 수 있어요" },
     { k:["월세","주거비","전세","임대료"], d:"광주시 청년정책과",
       t:"광주 청년 월세 지원은 만 19~34세 무주택 청년에게 월 최대 20만 원을 12개월까지 지원해요.\n소득 기준(중위소득 150% 이하)을 확인한 뒤 복지로 또는 행정복지센터에서 신청하면 돼요." },
     { k:["전입","이사","주소"], d:"행정복지센터 민원팀",
@@ -267,7 +271,13 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
       body: JSON.stringify(buildReq(msgs))
     }).then(function (res) {
       clearTimeout(timer);
-      if (!res.ok) { var e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
+      if (!res.ok) {
+        return res.text().then(function (t) {
+          var e = new Error("HTTP " + res.status);
+          e.status = res.status; e.body = t || "";
+          throw e;
+        });
+      }
       return res.json();
     }).then(function (data) {
       var text = "";
@@ -292,6 +302,8 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
       text: "API 키가 유효하지 않아요. 위 '연동 설정'에서 키를 다시 확인해 주세요.\n(키가 만료됐거나 잘못 입력됐을 수 있어요)" };
     if (err && err.status === 429) return {
       text: "요청이 잠시 몰려서 제한됐어요. 조금 뒤에 다시 물어봐 주세요." };
+    if (err && err.status === 400 && /credit/i.test(err.body || "")) return {
+      text: "API 크레딧(잔액)이 부족해요. console.anthropic.com → Billing에서 충전 상태를 확인해 주세요.\n(키를 만든 계정에 크레딧이 충전돼 있어야 해요)" };
     var r = reply(q);
     return { text: r.text + "\n\n※ Claude 연결에 실패해서 기본 지식으로 답했어요. (네트워크/API 오류)", dept: r.dept };
   }
