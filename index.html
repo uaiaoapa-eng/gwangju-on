@@ -648,13 +648,9 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     }).join("");
 
     var connected = !!S.apiKey;
-    // 연동 여부는 겉으로 티나지 않게 — 연동 시에만 조용히 'Claude 연동'으로 표시
-    var statusChip = connected
-      ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green-600);"><span style="width:7px;height:7px;border-radius:99px;background:var(--green-500);"></span>Claude 연동</span>'
-      : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green-600);"><span style="width:7px;height:7px;border-radius:99px;background:var(--green-500);"></span>온라인</span>';
-    var descText = connected
-      ? "Claude가 실시간으로 답하고 있어요. 광주에 관한 건 뭐든 물어보세요."
-      : "시연용 데모예요. 정식 서비스에서는 Claude가 민원을 이해하고 부서 데이터베이스를 조회해 답해요.";
+    // 연동 여부는 화면에 드러내지 않아요 — 항상 '온라인'만 표시 (상세는 숨김 설정 안에서)
+    var statusChip = '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green-600);"><span style="width:7px;height:7px;border-radius:99px;background:var(--green-500);"></span>온라인</span>';
+    var descText = "궁금한 민원부터 맛집·생활 정보까지, 광주에 관한 건 뭐든 물어보세요.";
     var settingsPanel = "";
     if (S.showSettings) {
       var modelOpts = [
@@ -666,6 +662,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
       }).join("");
       settingsPanel =
         '<div style="margin-top:12px;padding:14px;background:var(--slate-50);border:1px solid var(--slate-150);border-radius:12px;display:flex;flex-direction:column;gap:10px;">' +
+          '<p style="margin:0;font-size:11.5px;font-weight:700;color:' + (connected ? "var(--green-600)" : "var(--slate-500)") + ';">상태: ' + (connected ? "Claude 연동됨 · " + esc(S.apiModel) : "미연동 (데모 모드)") + '</p>' +
           '<label style="display:flex;flex-direction:column;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--slate-600);">Claude API 키</span>' +
             '<input id="apiKeyInput" type="password" placeholder="sk-ant-api03-..." value="' + esc(S.apiKey) + '" autocomplete="off" class="ds-field" style="width:100%;height:40px;border:1px solid var(--slate-200);border-radius:10px;padding:0 12px;font-size:13px;font-family:var(--font-mono);color:var(--ink);background:var(--white);outline:none;transition:border-color 120ms,box-shadow 120ms;"></label>' +
           '<label style="display:flex;flex-direction:column;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--slate-600);">모델</span>' +
