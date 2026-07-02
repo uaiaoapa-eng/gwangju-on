@@ -1,24 +1,51 @@
-/* ========== 광주ON — 데모 인터랙션 (모든 데이터는 브라우저 localStorage에만 저장) ========== */
+/* ========== 광주ON v2 — 데모 인터랙션 (모든 데이터는 브라우저 localStorage에만 저장) ========== */
 
-/* ----- 모바일 메뉴 ----- */
+/* ----- 헤더 스크롤 상태 ----- */
+const header = document.querySelector('.header');
+const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 10);
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+/* ----- 모바일 풀스크린 메뉴 ----- */
 const hamburger = document.getElementById('hamburger');
-const nav = document.getElementById('nav');
-hamburger.addEventListener('click', () => {
-  const open = nav.classList.toggle('open');
+const mobileMenu = document.getElementById('mobileMenu');
+function setMenu(open) {
+  hamburger.classList.toggle('open', open);
+  mobileMenu.classList.toggle('open', open);
   hamburger.setAttribute('aria-expanded', open);
+  mobileMenu.setAttribute('aria-hidden', !open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+hamburger.addEventListener('click', () => setMenu(!mobileMenu.classList.contains('open')));
+mobileMenu.addEventListener('click', e => {
+  if (e.target.closest('a') || e.target === mobileMenu) setMenu(false);
 });
-nav.addEventListener('click', e => {
-  if (e.target.tagName === 'A') nav.classList.remove('open');
+
+/* ----- 스크롤 리빌 ----- */
+const revealIO = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if (en.isIntersecting) { en.target.classList.add('in'); revealIO.unobserve(en.target); }
+  });
+}, { threshold: .15, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealIO.observe(el));
+
+/* ----- 벤토 카드 마우스 글로우 ----- */
+document.querySelectorAll('.bento-card').forEach(card => {
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
 });
 
 /* ----- 숫자 카운트업 (스크롤 진입 시) ----- */
 const counters = document.querySelectorAll('[data-count]');
-const io = new IntersectionObserver(entries => {
+const countIO = new IntersectionObserver(entries => {
   entries.forEach(en => {
     if (!en.isIntersecting) return;
-    io.unobserve(en.target);
+    countIO.unobserve(en.target);
     const target = +en.target.dataset.count;
-    const dur = 1200, t0 = performance.now();
+    const dur = 1400, t0 = performance.now();
     (function tick(t) {
       const p = Math.min((t - t0) / dur, 1);
       en.target.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString('ko-KR');
@@ -26,7 +53,7 @@ const io = new IntersectionObserver(entries => {
     })(t0);
   });
 }, { threshold: .4 });
-counters.forEach(el => io.observe(el));
+counters.forEach(el => countIO.observe(el));
 
 /* ----- AI 민원 챗 데모 (키워드 매칭, 시연용) ----- */
 const CHAT_RULES = [
@@ -60,7 +87,7 @@ function addMsg(role, html) {
 }
 function botReply(q) {
   const rule = CHAT_RULES.find(r => r.kw.some(k => q.includes(k))) || CHAT_FALLBACK;
-  const typing = addMsg('bot', '입력 중…');
+  const typing = addMsg('bot', '<span class="typing">입력 중…</span>');
   setTimeout(() => {
     typing.querySelector('.bubble').innerHTML =
       rule.a + '<span class="dept">📍 담당: ' + rule.dept + ' · 본 응답은 시연용입니다</span>';
@@ -97,6 +124,8 @@ let proposals = store.get('gjon_proposals', SEED_PROPOSALS);
 let myLikes = store.get('gjon_likes', []);
 const proposalList = document.getElementById('proposalList');
 
+function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
 function renderProposals() {
   proposalList.innerHTML = proposals
     .slice().sort((a, b) => b.likes - a.likes)
@@ -104,11 +133,11 @@ function renderProposals() {
       const pct = Math.min(100, Math.round(p.likes / GOAL * 100));
       const liked = myLikes.includes(p.id);
       const answered = p.likes >= GOAL;
-      return `<div class="card proposal">
+      return `<div class="glass proposal">
         <div class="p-main">
-          <span class="p-cat ${answered ? 'answered' : ''}">${answered ? '🏛️ 부서 답변 대기' : p.cat}</span>
-          <h4>${p.title}</h4>
-          <p>${p.body}</p>
+          <span class="p-cat ${answered ? 'answered' : ''}">${answered ? '🏛️ 부서 답변 대기' : escHtml(p.cat)}</span>
+          <h4>${escHtml(p.title)}</h4>
+          <p>${escHtml(p.body)}</p>
           <div class="p-progress"><i style="width:${pct}%"></i></div>
         </div>
         <button class="like-btn ${liked ? 'liked' : ''}" data-id="${p.id}" aria-label="공감하기">
@@ -137,7 +166,7 @@ document.getElementById('proposalForm').addEventListener('submit', e => {
   store.set('gjon_proposals', proposals);
   e.target.reset();
   renderProposals();
-  document.getElementById('proposalList').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  proposalList.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 renderProposals();
 
@@ -158,7 +187,7 @@ function renderVote() {
   const total = counts.reduce((a, b) => a + b, 0);
   voteOptionsEl.innerHTML = VOTE_OPTIONS.map((o, i) => {
     const pct = (counts[i] / total * 100).toFixed(1);
-    return `<div class="vote-option ${myVote === o.id ? 'voted-mine' : ''}" data-id="${o.id}" role="button" tabindex="0">
+    return `<div class="vote-option ${myVote === o.id ? 'voted-mine' : ''}" data-id="${o.id}" role="button" tabindex="0" aria-pressed="${myVote === o.id}">
       <div class="vote-bar" style="width:${pct}%"></div>
       <div class="vo-head"><span>${o.label}${myVote === o.id ? ' · 내 투표 ✓' : ''}</span><span class="vo-pct">${pct}% (${counts[i].toLocaleString()}표)</span></div>
     </div>`;
