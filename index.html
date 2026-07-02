@@ -108,9 +108,19 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     } catch (e) {}
   })();
 
+  // 숨김 설정 진입: 주소 뒤에 #setup 을 붙여 열면 연동 설정 패널이 열려요.
+  // (공개 UI에는 설정 버튼이 없어요 — 제목 5연타로도 열 수 있어요)
+  var openSetup = false;
+  try {
+    if ((location.hash || "") === "#setup") {
+      openSetup = true;
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  } catch (e) {}
+
   // ---------------- state ----------------------------------------------------
   var S = {
-    tab: PROPS.initialTab,
+    tab: openSetup ? "chat" : PROPS.initialTab,
     w: window.innerWidth,
     anim: 0,
     typing: false,
@@ -123,7 +133,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     district: "dong",
     apiKey: ls("gwon_api_key_v1", ""),
     apiModel: ls("gwon_api_model_v1", "claude-sonnet-5"),
-    showSettings: false,
+    showSettings: openSetup,
   };
 
   var GOAL = PROPS.empathyGoal;
@@ -582,12 +592,13 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     }).join("");
 
     var connected = !!S.apiKey;
+    // 연동 여부는 겉으로 티나지 않게 — 연동 시에만 조용히 'Claude 연동'으로 표시
     var statusChip = connected
       ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green-600);"><span style="width:7px;height:7px;border-radius:99px;background:var(--green-500);"></span>Claude 연동</span>'
-      : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--slate-500);"><span style="width:7px;height:7px;border-radius:99px;background:var(--slate-300);"></span>데모 모드</span>';
+      : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green-600);"><span style="width:7px;height:7px;border-radius:99px;background:var(--green-500);"></span>온라인</span>';
     var descText = connected
       ? "Claude가 실시간으로 답하고 있어요. 광주에 관한 건 뭐든 물어보세요."
-      : "시연용 데모예요. '연동 설정'에서 Claude API 키를 넣으면 모든 질문에 진짜 AI가 답해요.";
+      : "시연용 데모예요. 정식 서비스에서는 Claude가 민원을 이해하고 부서 데이터베이스를 조회해 답해요.";
     var settingsPanel = "";
     if (S.showSettings) {
       var modelOpts = [
@@ -608,16 +619,14 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
             (connected ? '<button type="button" data-action="clearAIKey" class="ds-btn ds-btn-secondary" style="height:38px;font-size:13.5px;">해제</button>' : "") +
           '</div>' +
           (connected ? '<button type="button" data-action="copyShareLink" class="ds-btn ds-btn-secondary" style="height:38px;font-size:13px;width:100%;color:' + (S.copied ? "var(--green-600)" : "var(--blue-600)") + ';">' + (S.copied ? "복사했어요! 메신저 '나에게 보내기'로 전송하세요" : "다른 기기용 연동 링크 복사") + '</button>' : "") +
-          '<p style="margin:0;font-size:10.5px;line-height:1.6;color:var(--slate-400);">키는 이 브라우저(localStorage)에만 저장되고 어디에도 전송·공개되지 않아요. 코드나 저장소에는 절대 넣지 마세요. \'연동 링크\'에는 키가 담겨 있으니 반드시 본인에게만 보내세요 — 다른 기기에서 그 링크를 한 번 열면 자동 연동돼요. 공용 기기에서는 사용 후 꼭 \'해제\'를 눌러 주세요. 키 발급: console.anthropic.com</p>' +
+          '<p style="margin:0;font-size:10.5px;line-height:1.6;color:var(--slate-400);">키는 이 브라우저(localStorage)에만 저장되고 어디에도 전송·공개되지 않아요. 코드나 저장소에는 절대 넣지 마세요. \'연동 링크\'에는 키가 담겨 있으니 반드시 본인에게만 보내세요 — 다른 기기에서 그 링크를 한 번 열면 자동 연동돼요. 공용 기기에서는 사용 후 꼭 \'해제\'를 눌러 주세요. 이 창은 제목(AI 민원 도우미)을 5번 연속 탭하거나 주소 뒤에 #setup 을 붙여 다시 열 수 있어요. 키 발급: console.anthropic.com</p>' +
         '</div>';
     }
     return '<div style="display:flex;flex-direction:column;height:calc(100dvh - 117px);overflow:hidden;">' +
       '<div style="flex:0 0 auto;padding:18px 22px 14px;border-bottom:1px solid var(--slate-150);">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<h2 style="margin:0;font-size:18px;font-weight:800;letter-spacing:-0.015em;">AI 민원 도우미</h2>' +
-          statusChip +
-          '<span style="flex:1;"></span>' +
-          '<button type="button" data-action="toggleAISettings" style="border:1px solid var(--slate-200);background:var(--white);color:var(--slate-600);border-radius:99px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer;">연동 설정</button></div>' +
+          '<h2 data-action="secretTap" style="margin:0;font-size:18px;font-weight:800;letter-spacing:-0.015em;cursor:default;">AI 민원 도우미</h2>' +
+          statusChip + '</div>' +
         '<p style="margin:6px 0 0;font-size:12px;line-height:1.55;color:var(--slate-500);">' + descText + '</p>' +
         settingsPanel +
       '</div>' +
@@ -835,6 +844,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
 
   // ---------------- event handling -------------------------------------------
   var pendingFocus = null;
+  var secretTaps = 0, secretTapAt = 0;
 
   function readForm() {
     var t = document.getElementById("fTitle");
@@ -889,7 +899,13 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     else if (a === "like") { like(arg); }
     else if (a === "vote") { vote(arg); }
     else if (a === "district") { if (S.district !== arg) { S.district = arg; render(); } }
-    else if (a === "toggleAISettings") { S.showSettings = !S.showSettings; render(); }
+    else if (a === "secretTap") {
+      // 숨김 진입: 제목을 2.5초 안에 5번 연속 탭하면 연동 설정이 열려요
+      var now = Date.now();
+      if (now - secretTapAt > 2500) secretTaps = 0;
+      secretTapAt = now; secretTaps++;
+      if (secretTaps >= 5) { secretTaps = 0; S.showSettings = !S.showSettings; render(); }
+    }
     else if (a === "saveAIKey") {
       var ki = document.getElementById("apiKeyInput"), ms = document.getElementById("apiModelSel");
       S.apiKey = ki ? ki.value.trim() : "";
