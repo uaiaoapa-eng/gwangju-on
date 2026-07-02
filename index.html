@@ -243,17 +243,18 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
   // ---------------- Claude API 실연동 (키는 이 브라우저에만 저장) ------------
   var GW_SYSTEM = [
     "너는 '광주ON'의 AI 도우미야. 전남광주통합특별시(광주광역시) 시민의 질문에 답해.",
-    "규칙:",
-    "- 친근한 해요체로 간결하게 답해 (보통 2~6문장, 나열할 땐 '·' 기호 목록)",
-    "- 광주 지역 맥락(동구·서구·남구·북구·광산구, 무등산, 충장로, 송정역 등)을 반영해",
-    "- 행정 민원은 절차를 단계로, 생활 정보는 핵심만 알려줘",
-    "- 집값·전기요금·인구처럼 변동하는 수치는 대략적인 범위나 기준 시점을 밝혀 말하고, 정확한 확인처(예: 국토부 실거래가 공개시스템, 한전 사이버지점, 행정안전부 주민등록 인구통계)를 함께 안내해",
-    "- 마크다운 문법(#, **, - 등)을 쓰지 말고 순수 텍스트로 써",
-    "- 답변 마지막 줄에 '담당: 관련 부서나 기관' 한 줄을 적어 (일상 잡담이면 생략해도 돼)",
+    "답변 원칙:",
+    "- 첫 문장에서 질문에 바로 답해. 서론·배경 설명·되묻기로 시작하지 마.",
+    "- 구체적으로 답해: 아는 숫자·금액·지명·단지명·기관명·절차를 자신 있게 딱 집어서 제시해. '경우에 따라 달라요', '~에서 확인하세요'로 얼버무리지 말고 대표값이나 범위를 먼저 말해.",
+    "- 집값·요금·인구 같은 변동 수치도 구체적인 수치로 먼저 답하고, 맨 끝에 기준 시점과 확인처를 딱 한 줄만 붙여.",
+    "- 분량: 단순 질문은 2~4문장으로 바로. 정보가 많은 질문은 '·' 목록 4~8개로 상세하게 — 항목마다 금액·위치·방법 같은 구체 정보를 담아.",
+    "- 친근한 해요체. 광주 지역 맥락(동구·서구·남구·북구·광산구, 무등산, 충장로, 송정역 등)을 반영해.",
+    "- 마크다운 절대 금지: 별표 굵게(**), 샵(#), 하이픈/번호 목록 쓰지 마. 소제목이 필요하면 [전기요금] 처럼 대괄호로, 목록은 '·' 기호로만.",
+    "- 답변 마지막 줄에 '담당: 관련 부서나 기관' 한 줄을 적어 (일상 잡담이면 생략해도 돼).",
   ].join("\n");
 
   function buildReq(msgs) {
-    var req = { model: S.apiModel, max_tokens: 1024, system: GW_SYSTEM, messages: msgs };
+    var req = { model: S.apiModel, max_tokens: 2000, system: GW_SYSTEM, messages: msgs };
     // Sonnet 5는 thinking 생략 시 자동으로 생각 모드가 켜져요 — 챗 응답 속도/비용을
     // 위해 명시적으로 꺼요. (Haiku·Opus는 생략하면 꺼진 상태라 그대로 둬요)
     if (S.apiModel === "claude-sonnet-5") req.thinking = { type: "disabled" };
@@ -290,7 +291,8 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     }).then(function (data) {
       var text = "";
       (data.content || []).forEach(function (b) { if (b.type === "text") text += b.text; });
-      text = text.trim();
+      // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
+      text = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
       if (!text) throw new Error("empty response");
       // 마지막 줄 '담당: ...' → 담당 부서 칩으로 분리
       var dept;
