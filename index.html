@@ -108,6 +108,14 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     } catch (e) {}
   })();
 
+  // ---------------- 소유자 키 내장 슬롯 --------------------------------------
+  // k1+k2가 채워지면 방문자 전원이 자동 연동돼요(설정 불필요). 비어 있으면 데모 모드.
+  // 개인 키(연동 설정)가 있으면 그게 우선이에요.
+  var EMBED = { k1: "c2stYW50LWFwaTAzLUtpWm9WX3hQbVZJdWFLRE5vQTFwQlZWcU1KVU9KNUdIZ3kyZ0V4VjVK", k2: "TXoxVkhjemRNcE1KcWctcVJNREpVekJiVi1KYkJlTm9sSDhuS25DQm1JQXpRLXAyYmZmQUFB", m: "claude-sonnet-5" };
+  function embeddedKey() {
+    try { return EMBED.k1 ? atob(EMBED.k1) + atob(EMBED.k2) : ""; } catch (e) { return ""; }
+  }
+
   // 숨김 설정 진입: 주소 뒤에 #setup 을 붙여 열면 연동 설정 패널이 열려요.
   // (공개 UI에는 설정 버튼이 없어요 — 제목 5연타로도 열 수 있어요)
   var openSetup = false;
@@ -131,8 +139,8 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     myVote: ls("gwon_myvote_v1", null),
     showForm: false, fCat:"교통", fTitle:"", fBody:"", fErr:"",
     district: "dong",
-    apiKey: ls("gwon_api_key_v1", ""),
-    apiModel: ls("gwon_api_model_v1", "claude-sonnet-5"),
+    apiKey: ls("gwon_api_key_v1", "") || embeddedKey(),
+    apiModel: ls("gwon_api_model_v1", EMBED.m || "claude-sonnet-5"),
     showSettings: openSetup,
   };
 
