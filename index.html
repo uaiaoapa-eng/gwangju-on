@@ -248,7 +248,12 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     "- 2026년 7월 1일, 광주광역시와 전라남도가 행정통합하여 '전남광주통합특별시'가 공식 출범했어.",
     "- 초대 통합특별시장은 민형배 시장이야 (2026년 7월 1일 취임).",
     "- 취임 비전: '남도가 하나 되는 도시, 시민이 주인 되는 전남광주통합특별시' · 5대 약속: 압도적 성장, 균형발전, 기본소득, 녹색도시, 시민주권.",
-    "- 시장·특별시·최신 시사 질문에 '실시간 확인이 어려워요'라고 회피하지 마 — 위 기준 정보와 아는 지식으로 바로 답해. 그 이후 세부가 바뀌었을 수 있으면 끝에 한 줄만 덧붙여.",
+    "- 시장·특별시·최신 시사 질문에 '실시간 확인이 어려워요'라고 회피하지 마 — 검색하거나 위 기준 정보로 바로 답해.",
+    "",
+    "웹 검색 사용:",
+    "- 최신 정보가 걸린 질문(시세·요금·날씨·뉴스·인물·행사·영업시간 등)은 답하기 전에 web_search로 확인하고, 검색으로 확인한 수치를 근거로 답해.",
+    "- 검색 결과와 위 기준 정보가 다르면 더 최신인 쪽을 따르되, 무엇을 근거로 했는지 짧게 밝혀.",
+    "- 절차·제도처럼 잘 안 바뀌는 일반 상식은 검색 없이 바로 답해도 돼.",
     "",
     "답변 원칙:",
     "- 첫 문장에서 질문에 바로 답해. 서론·배경 설명·되묻기로 시작하지 마.",
@@ -267,16 +272,19 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     // Sonnet 5는 thinking 생략 시 자동으로 생각 모드가 켜져요 — 챗 응답 속도/비용을
     // 위해 명시적으로 꺼요. (Haiku·Opus는 생략하면 꺼진 상태라 그대로 둬요)
     if (S.apiModel === "claude-sonnet-5") req.thinking = { type: "disabled" };
+    // 웹 검색: 최신 정보 질문은 실제로 검색해서 답해요 (질문당 최대 3회)
+    // Haiku 4.5는 구형 검색 도구만 지원해요
+    var wsType = S.apiModel === "claude-haiku-4-5" ? "web_search_20250305" : "web_search_20260209";
+    req.tools = [{
+      type: wsType, name: "web_search", max_uses: 3,
+      user_location: { type: "approximate", city: "Gwangju", country: "KR", timezone: "Asia/Seoul" }
+    }];
     return req;
   }
 
-  function callClaude() {
-    // 대화 히스토리: user로 시작하도록 앞쪽 봇 인사 제거, 최근 12개만
-    var hist = S.messages.slice(-12);
-    while (hist.length && hist[0].role !== "user") hist.shift();
-    var msgs = hist.map(function (m) { return { role: m.role === "bot" ? "assistant" : "user", content: m.text }; });
+  function claudeFetch(msgs) {
     var ctrl = new AbortController();
-    var timer = setTimeout(function () { ctrl.abort(); }, 30000);
+    var timer = setTimeout(function () { ctrl.abort(); }, 90000);
     return fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       signal: ctrl.signal,
@@ -297,23 +305,40 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
         });
       }
       return res.json();
-    }).then(function (data) {
-      var text = "";
-      (data.content || []).forEach(function (b) { if (b.type === "text") text += b.text; });
-      // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
-      text = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
-      if (!text) throw new Error("empty response");
-      // 마지막 줄 '담당: ...' → 담당 부서 칩으로 분리
-      var dept;
-      var lines = text.split("\n");
-      var last = lines[lines.length - 1].trim();
-      if (/^담당\s*[:·]/.test(last)) {
-        dept = last.replace(/^담당\s*[:·]\s*/, "").trim();
-        lines.pop();
-        text = lines.join("\n").trim();
-      }
-      return { text: text, dept: dept };
     }).catch(function (err) { clearTimeout(timer); throw err; });
+  }
+
+  function callClaude() {
+    // 대화 히스토리: user로 시작하도록 앞쪽 봇 인사 제거, 최근 12개만
+    var hist = S.messages.slice(-12);
+    while (hist.length && hist[0].role !== "user") hist.shift();
+    var msgs = hist.map(function (m) { return { role: m.role === "bot" ? "assistant" : "user", content: m.text }; });
+    var conts = 0;
+    function go(m) {
+      return claudeFetch(m).then(function (data) {
+        // 서버측 검색 라운드가 한도에 걸리면 이어서 계속 (최대 2회)
+        if (data.stop_reason === "pause_turn" && conts < 2) {
+          conts++;
+          return go(m.concat([{ role: "assistant", content: data.content }]));
+        }
+        var text = "";
+        (data.content || []).forEach(function (b) { if (b.type === "text") text += b.text; });
+        // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
+        text = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
+        if (!text) throw new Error("empty response");
+        // 마지막 줄 '담당: ...' → 담당 부서 칩으로 분리
+        var dept;
+        var lines = text.split("\n");
+        var last = lines[lines.length - 1].trim();
+        if (/^담당\s*[:·]/.test(last)) {
+          dept = last.replace(/^담당\s*[:·]\s*/, "").trim();
+          lines.pop();
+          text = lines.join("\n").trim();
+        }
+        return { text: text, dept: dept };
+      });
+    }
+    return go(msgs);
   }
 
   function claudeError(err, q) {
