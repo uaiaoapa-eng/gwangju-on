@@ -49,6 +49,9 @@ button { font-family:inherit; }
 
 @keyframes gw-dot { 0%,60%,100%{opacity:.25;transform:translateY(0);} 30%{opacity:1;transform:translateY(-3px);} }
 @keyframes gw-in  { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+@keyframes gw-pulse { 0%,100%{opacity:1;} 50%{opacity:.45;} }
+@keyframes gw-blink { 0%,49%{opacity:1;} 50%,100%{opacity:0;} }
+@keyframes gw-livepulse { 0%,100%{ box-shadow:0 0 0 0 rgba(47,107,255,0); border-color:var(--slate-200); } 50%{ box-shadow:0 0 0 3px rgba(47,107,255,0.14); border-color:var(--blue-300); } }
 
 /* interactive states (ports of the prototype's style-hover / style-focus) */
 .ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:12px;
@@ -695,19 +698,23 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     var typing = "";
     if (S.typing) {
       if (S.streamLive) {
-        // 실시간 스트리밍 말풍선: 글자가 오는 대로 표시
+        // 대답하는 중: 말풍선이 은은히 깜빡이고 라벨 + 깜빡이는 커서 표시
         var liveTxt = esc(S.streamLive.replace(/\*\*(.+?)\*\*/g, "$1"));
         typing = '<div style="display:flex;gap:9px;align-items:flex-end;">' +
           '<span style="width:26px;height:26px;border-radius:9px;background:var(--blue-700);color:var(--white);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">온</span>' +
-          '<div style="max-width:82%;background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:11px 14px;">' +
-          '<p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--slate-700);white-space:pre-line;">' + liveTxt + '<span style="opacity:.4;">▌</span></p></div></div>';
+          '<div style="max-width:82%;background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:11px 14px;animation:gw-livepulse 1.6s ease-in-out infinite;">' +
+          '<p style="margin:0 0 6px;display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--blue-500);">' +
+            '<span style="width:6px;height:6px;border-radius:99px;background:var(--blue-500);animation:gw-pulse 1s ease-in-out infinite;"></span>대답하는 중이에요</p>' +
+          '<p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--slate-700);white-space:pre-line;">' + liveTxt + '<span style="color:var(--blue-500);animation:gw-blink 1s step-end infinite;">▌</span></p></div></div>';
       } else {
+        // 생각하는 중: 점 3개 + 깜빡이는 안내 문구
         typing = '<div style="display:flex;gap:9px;align-items:flex-end;">' +
           '<span style="width:26px;height:26px;border-radius:9px;background:var(--blue-700);color:var(--white);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">온</span>' +
-          '<div style="background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:13px 14px;display:flex;gap:4px;">' +
+          '<div style="background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:12px 14px;display:flex;align-items:center;gap:4px;animation:gw-livepulse 1.6s ease-in-out infinite;">' +
           '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0s;"></span>' +
           '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.15s;"></span>' +
-          '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.3s;"></span></div></div>';
+          '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.3s;"></span>' +
+          '<span style="margin-left:5px;font-size:12px;font-weight:600;color:var(--slate-500);animation:gw-pulse 1.4s ease-in-out infinite;">생각하는 중이에요</span></div></div>';
       }
     }
 
