@@ -125,6 +125,24 @@ button{font-family:inherit}
   .orb{animation:none}
 }
 
+/* ---------- 시정 비전 ---------- */
+.vision-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3);font-size:12px;font-weight:800;border-radius:99px;padding:4px 14px;margin-bottom:10px;letter-spacing:.02em}
+.quote-card{max-width:680px;margin:0 auto 44px;padding:40px 44px 32px;text-align:center;position:relative;border-color:rgba(52,211,153,.25);box-shadow:var(--shadow-glow)}
+.quote-mark{position:absolute;top:6px;left:22px;font-size:80px;font-weight:800;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.5}
+.quote-card p{font-size:clamp(19px,2.6vw,26px);font-weight:700;line-height:1.5;letter-spacing:-.02em}
+.quote-card p b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.quote-card cite{display:block;margin-top:16px;font-style:normal;font-size:13px;color:var(--ink-dim);font-weight:600}
+.principles{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.principle{padding:24px 20px;position:relative;transition:.2s}
+.principle:hover{border-color:rgba(52,211,153,.4);transform:translateY(-4px)}
+.principle.highlight{border-color:rgba(52,211,153,.45);box-shadow:var(--shadow-glow);background:linear-gradient(160deg,rgba(52,211,153,.08),var(--glass))}
+.p-num{font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--ink-dim);margin-bottom:10px}
+.principle.highlight .p-num{color:var(--mint)}
+.principle h3{font-size:15.5px;margin-bottom:8px;letter-spacing:-.01em}
+.p-desc{font-size:12.5px;color:var(--ink-dim);padding-bottom:10px;border-bottom:1px dashed var(--line);margin-bottom:10px}
+.p-link{font-size:12.5px;color:var(--ink-soft);line-height:1.55}
+.p-link b{color:var(--mint)}
+
 /* ---------- 벤토 그리드 ---------- */
 .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:52px}
 .bento-card{position:relative;background:var(--glass);border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px;backdrop-filter:blur(10px);transition:.22s;overflow:hidden}
@@ -240,6 +258,8 @@ button{font-family:inherit}
 
 /* ---------- 반응형 ---------- */
 @media (max-width:960px){
+  .principles{grid-template-columns:repeat(2,1fr)}
+  .principle.highlight{grid-column:1/-1}
   .bento{grid-template-columns:repeat(2,1fr)}
   .dash-grid{grid-template-columns:repeat(2,1fr)}
   .district-grid{grid-template-columns:repeat(2,1fr)}
@@ -255,6 +275,8 @@ button{font-family:inherit}
   .hero-actions .btn{width:100%;max-width:340px}
   .section{padding:72px 0}
   .bento{grid-template-columns:1fr;margin-top:40px}
+  .principles{grid-template-columns:1fr}
+  .quote-card{padding:36px 26px 28px}
   .b-lg{grid-row:auto}
   .district-grid{grid-template-columns:1fr}
   .chat-log{height:300px;padding:18px}
