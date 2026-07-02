@@ -142,6 +142,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     apiKey: ls("gwon_api_key_v1", "") || embeddedKey(),
     apiModel: ls("gwon_api_model_v1", EMBED.m || "claude-sonnet-5"),
     showSettings: openSetup,
+    streamLive: "",
   };
 
   var GOAL = PROPS.empathyGoal;
@@ -254,11 +255,14 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     "- 최신 정보가 걸린 질문(시세·요금·날씨·뉴스·인물·행사·영업시간 등)은 답하기 전에 web_search로 확인하고, 검색으로 확인한 수치를 근거로 답해.",
     "- 검색 결과와 위 기준 정보가 다르면 더 최신인 쪽을 따르되, 무엇을 근거로 했는지 짧게 밝혀.",
     "- 절차·제도처럼 잘 안 바뀌는 일반 상식은 검색 없이 바로 답해도 돼.",
+    "- 검색은 꼭 필요한 만큼만 1~2회로 압축해. 결과가 완벽하지 않아도 찾은 것에서 최선의 수치를 뽑아 바로 답해 — 검색을 반복하며 시간을 끌지 마.",
     "",
     "답변 원칙:",
     "- 첫 문장에서 질문에 바로 답해. 서론·배경 설명·되묻기로 시작하지 마.",
     "- 구체적으로 답해: 아는 숫자·금액·지명·단지명·기관명·절차를 자신 있게 딱 집어서 제시해. '경우에 따라 달라요', '~에서 확인하세요'로 얼버무리지 말고 대표값이나 범위를 먼저 말해.",
     "- 집값·요금·인구 같은 변동 수치도 구체적인 수치로 먼저 답하고, 맨 끝에 기준 시점과 확인처를 딱 한 줄만 붙여.",
+    "- '얼마', '몇 명', '몇 %' 같은 수치 질문에는 답에 반드시 구체적인 숫자가 들어가야 해. 모르면 web_search로 찾아서라도 숫자를 제시해. 정확한 최신치를 못 찾으면 가장 가까운 공식 통계를 '○○년 기준'이라고 밝히고 제시해. 숫자 없이 기관 안내만 하고 끝내는 답은 금지야.",
+    "- 핵심 수치마다 근거를 붙여: 예) '약 2조 1천억 원 (2025년 기준, 출처: 광주시 예산서)'. 어림값이면 '약'을 붙이고, 검색으로 확인한 수치는 출처 매체·기관명을 밝혀.",
     "- 분량: 단순 질문은 2~4문장으로 바로. 정보가 많은 질문은 '·' 목록 4~8개로 상세하게 — 항목마다 금액·위치·방법 같은 구체 정보를 담아.",
     "- 항상 친근한 해요체로 답해 — 사용자가 반말로 물어도 해요체를 유지해. 광주 지역 맥락(동구·서구·남구·북구·광산구, 무등산, 충장로, 송정역 등)을 반영해.",
     "- 마크다운 절대 금지: 별표 굵게(**), 샵(#), 하이픈/번호 목록 쓰지 마. 소제목이 필요하면 [전기요금] 처럼 대괄호로, 목록은 '·' 기호로만.",
@@ -282,9 +286,17 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     return req;
   }
 
-  function claudeFetch(msgs) {
+  function claudeStream(msgs, onDelta) {
+    // 스트리밍(SSE): 검색이 오래 걸려도 타임아웃 없이 글자가 오는 대로 표시해요.
     var ctrl = new AbortController();
-    var timer = setTimeout(function () { ctrl.abort(); }, 90000);
+    var idleTimer = null;
+    function armIdle() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () { ctrl.abort(); }, 75000); // 75초간 무응답이면 중단
+    }
+    armIdle();
+    var req = buildReq(msgs);
+    req.stream = true;
     return fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       signal: ctrl.signal,
@@ -294,51 +306,70 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true"
       },
-      body: JSON.stringify(buildReq(msgs))
+      body: JSON.stringify(req)
     }).then(function (res) {
-      clearTimeout(timer);
       if (!res.ok) {
+        clearTimeout(idleTimer);
         return res.text().then(function (t) {
           var e = new Error("HTTP " + res.status);
           e.status = res.status; e.body = t || "";
           throw e;
         });
       }
-      return res.json();
-    }).catch(function (err) { clearTimeout(timer); throw err; });
+      var reader = res.body.getReader();
+      var dec = new TextDecoder();
+      var buf = "", text = "";
+      function pump() {
+        return reader.read().then(function (chunk) {
+          armIdle();
+          if (chunk.done) {
+            clearTimeout(idleTimer);
+            return { text: text };
+          }
+          buf += dec.decode(chunk.value, { stream: true });
+          var lines = buf.split("\n");
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.slice(0, 5) !== "data:") continue;
+            var ev;
+            try { ev = JSON.parse(ln.slice(5)); } catch (e2) { continue; }
+            if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
+              text += ev.delta.text;
+              if (onDelta) onDelta(text);
+            } else if (ev.type === "error") {
+              clearTimeout(idleTimer);
+              var e3 = new Error((ev.error && ev.error.message) || "stream error");
+              throw e3;
+            }
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (err) { clearTimeout(idleTimer); throw err; });
   }
 
-  function callClaude() {
+  function callClaude(onDelta) {
     // 대화 히스토리: user로 시작하도록 앞쪽 봇 인사 제거, 최근 12개만
     var hist = S.messages.slice(-12);
     while (hist.length && hist[0].role !== "user") hist.shift();
     var msgs = hist.map(function (m) { return { role: m.role === "bot" ? "assistant" : "user", content: m.text }; });
-    var conts = 0;
-    function go(m) {
-      return claudeFetch(m).then(function (data) {
-        // 서버측 검색 라운드가 한도에 걸리면 이어서 계속 (최대 2회)
-        if (data.stop_reason === "pause_turn" && conts < 2) {
-          conts++;
-          return go(m.concat([{ role: "assistant", content: data.content }]));
-        }
-        var text = "";
-        (data.content || []).forEach(function (b) { if (b.type === "text") text += b.text; });
-        // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
-        text = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
-        if (!text) throw new Error("empty response");
-        // 마지막 줄 '담당: ...' → 담당 부서 칩으로 분리
-        var dept;
-        var lines = text.split("\n");
-        var last = lines[lines.length - 1].trim();
-        if (/^담당\s*[:·]/.test(last)) {
-          dept = last.replace(/^담당\s*[:·]\s*/, "").trim();
-          lines.pop();
-          text = lines.join("\n").trim();
-        }
-        return { text: text, dept: dept };
-      });
-    }
-    return go(msgs);
+    return claudeStream(msgs, onDelta).then(function (out) {
+      // 안전망: 모델이 실수로 쓴 마크다운 표기는 화면에 그대로 보이므로 제거
+      var text = (out.text || "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,4}\s*/gm, "").trim();
+      if (!text) throw new Error("empty response");
+      // 마지막 줄 '담당: ...' → 담당 부서 칩으로 분리
+      var dept;
+      var lines = text.split("\n");
+      var last = lines[lines.length - 1].trim();
+      if (/^담당\s*[:·]/.test(last)) {
+        dept = last.replace(/^담당\s*[:·]\s*/, "").trim();
+        lines.pop();
+        text = lines.join("\n").trim();
+      }
+      return { text: text, dept: dept };
+    });
   }
 
   function claudeError(err, q) {
@@ -355,6 +386,7 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
   function finishReply(r) {
     S.messages = S.messages.concat([{ role:"bot", text:r.text, dept:r.dept }]);
     S.typing = false;
+    S.streamLive = "";
     render();
   }
 
@@ -363,9 +395,16 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
     if (!q || S.typing) return;
     S.messages = S.messages.concat([{ role:"user", text:q }]);
     S.typing = true;
+    S.streamLive = "";
     render();
     if (S.apiKey) {
-      callClaude().then(finishReply, function (err) { finishReply(claudeError(err, q)); });
+      var lastLive = 0;
+      callClaude(function (t) {
+        // 실시간 타이핑 표시 (150ms 스로틀)
+        S.streamLive = t;
+        var now = Date.now();
+        if (now - lastLive > 150) { lastLive = now; render(); }
+      }).then(finishReply, function (err) { finishReply(claudeError(err, q)); });
     } else {
       setTimeout(function () { finishReply(reply(q)); }, 850);
     }
@@ -636,12 +675,24 @@ button:focus-visible, a:focus-visible { outline:none; box-shadow:var(--ring); }
         '<p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--white);">' + esc(m.text) + '</p></div></div>';
     }).join("");
 
-    var typing = S.typing ? '<div style="display:flex;gap:9px;align-items:flex-end;">' +
-      '<span style="width:26px;height:26px;border-radius:9px;background:var(--blue-700);color:var(--white);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">온</span>' +
-      '<div style="background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:13px 14px;display:flex;gap:4px;">' +
-      '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0s;"></span>' +
-      '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.15s;"></span>' +
-      '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.3s;"></span></div></div>' : "";
+    var typing = "";
+    if (S.typing) {
+      if (S.streamLive) {
+        // 실시간 스트리밍 말풍선: 글자가 오는 대로 표시
+        var liveTxt = esc(S.streamLive.replace(/\*\*(.+?)\*\*/g, "$1"));
+        typing = '<div style="display:flex;gap:9px;align-items:flex-end;">' +
+          '<span style="width:26px;height:26px;border-radius:9px;background:var(--blue-700);color:var(--white);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">온</span>' +
+          '<div style="max-width:82%;background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:11px 14px;">' +
+          '<p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--slate-700);white-space:pre-line;">' + liveTxt + '<span style="opacity:.4;">▌</span></p></div></div>';
+      } else {
+        typing = '<div style="display:flex;gap:9px;align-items:flex-end;">' +
+          '<span style="width:26px;height:26px;border-radius:9px;background:var(--blue-700);color:var(--white);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">온</span>' +
+          '<div style="background:var(--white);border:1px solid var(--slate-200);border-radius:14px 14px 14px 4px;padding:13px 14px;display:flex;gap:4px;">' +
+          '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0s;"></span>' +
+          '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.15s;"></span>' +
+          '<span style="width:6px;height:6px;border-radius:99px;background:var(--slate-400);animation:gw-dot 1.1s infinite 0.3s;"></span></div></div>';
+      }
+    }
 
     var quick = V.quickAsks.map(function (q) {
       return '<button type="button" data-action="quick" data-arg="' + esc(q) + '" style="background:var(--white);border:1px solid var(--slate-200);border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--slate-600);cursor:pointer;">' + esc(q) + '</button>';
