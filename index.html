@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광주ON — 시민과 행정을 잇는 AI 통합 플랫폼</title>
+<meta name="description" content="묻고(AI 민원), 제안하고(시민참여), 함께 결정하는(정책투표) 광주 통합 시민 플랫폼 데모">
+<meta property="og:title" content="광주ON — 시민과 행정을 잇는 AI 통합 플랫폼">
+<meta property="og:description" content="AI 민원 도우미 · 시민 제안 · 정책 라이브 투표 · 행정 투명 대시보드">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%230b6e4f'/%3E%3Ctext x='50' y='66' font-size='46' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3EON%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="demo-banner">🧪 본 사이트는 기획 시연용 프로토타입입니다 · 모든 수치와 AI 응답은 가상 데이터입니다 · <a href="PRODUCT.md" target="_blank">기획서 보기</a></div>
+
+<header class="header" id="top">
+  <div class="container header-inner">
+    <a href="#top" class="logo"><span class="logo-mark">ON</span> 광주<b>ON</b></a>
+    <nav class="nav" id="nav">
+      <a href="#services">서비스</a>
+      <a href="#ai-chat">AI 민원</a>
+      <a href="#proposals">시민제안</a>
+      <a href="#vote">정책투표</a>
+      <a href="#dashboard">대시보드</a>
+      <a href="#districts">자치구</a>
+    </nav>
+    <a href="#ai-chat" class="btn btn-primary header-cta">지금 물어보기</a>
+    <button class="hamburger" id="hamburger" aria-label="메뉴 열기" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero-inner">
+    <p class="hero-eyebrow">광주광역시 × 시민 × AI</p>
+    <h1>시민이 <em>묻고</em>, 행정이 <em>답하고</em>,<br>광주가 <em>함께 결정</em>합니다</h1>
+    <p class="hero-sub">민원 안내부터 정책 결정까지, 흩어져 있던 창구를 하나로.<br>AI가 24시간 응답하고, 시민의 제안이 정책이 되는 통합 플랫폼 <b>광주ON</b>.</p>
+    <div class="hero-actions">
+      <a href="#ai-chat" class="btn btn-primary btn-lg">💬 AI에게 민원 물어보기</a>
+      <a href="#proposals" class="btn btn-ghost btn-lg">💡 정책 제안하기</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><strong data-count="12480">0</strong><span>이번 달 AI 민원 응답</span></div>
+      <div class="stat"><strong data-count="342">0</strong><span>진행 중 시민 제안</span></div>
+      <div class="stat"><strong data-count="96">0</strong><span>민원 처리 만족도(%)</span></div>
+      <div class="stat"><strong data-count="58210">0</strong><span>참여 시민 수</span></div>
+    </div>
+    <p class="fineprint">※ 시연용 가상 수치</p>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <div class="container">
+    <p class="sec-eyebrow">6대 핵심 서비스</p>
+    <h2>하나의 창구에서, 행정의 모든 것</h2>
+    <div class="grid services-grid">
+      <a class="card service" href="#ai-chat"><div class="icon">🤖</div><h3>AI 민원 도우미</h3><p>담당 부서·절차·서류를 자연어 질문 한 번으로. 24시간, 기다림 없이.</p></a>
+      <a class="card service" href="#proposals"><div class="icon">💡</div><h3>시민 제안 · 공감</h3><p>아이디어 등록 → 공감 100 도달 시 담당 부서가 30일 내 공식 답변.</p></a>
+      <a class="card service" href="#vote"><div class="icon">🗳️</div><h3>정책 라이브 투표</h3><p>주민참여예산과 정책 우선순위를 시민 투표로. 결과는 실시간 공개.</p></a>
+      <a class="card service" href="#dashboard"><div class="icon">📊</div><h3>행정 투명 대시보드</h3><p>민원 접수·처리율·예산 집행을 숨김없이 실시간으로 공개.</p></a>
+      <div class="card service"><div class="icon">🎨</div><h3>AI 콘텐츠 스튜디오</h3><p>공무원용 — 행정 데이터를 카드뉴스·쉬운 요약문으로 자동 변환. <span class="tag">2차 오픈</span></p></div>
+      <a class="card service" href="#districts"><div class="icon">🏘️</div><h3>우리동네 광주</h3><p>동·서·남·북·광산 5개 자치구별 이슈와 소식을 한곳에서.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- AI CHAT DEMO -->
+<section class="section section-alt" id="ai-chat">
+  <div class="container">
+    <p class="sec-eyebrow">AI 민원 도우미 · 데모</p>
+    <h2>무엇이든 물어보세요, 바로 안내해 드립니다</h2>
+    <p class="sec-sub">아래는 시연용 데모입니다. 실제 서비스에서는 Claude가 민원을 이해하고 부서 데이터베이스를 조회해 답합니다.</p>
+    <div class="chat-wrap card">
+      <div class="chat-log" id="chatLog">
+        <div class="msg bot"><div class="bubble">안녕하세요, 광주ON AI 민원 도우미입니다. 🙂<br>궁금한 민원을 입력하시거나 아래 버튼을 눌러보세요.</div></div>
+      </div>
+      <div class="chat-quick" id="chatQuick">
+        <button data-q="대형 폐기물 버리는 방법 알려줘">🛋️ 대형 폐기물 배출</button>
+        <button data-q="불법 주정차 신고하고 싶어요">🚗 불법 주정차 신고</button>
+        <button data-q="청년 월세 지원 받을 수 있나요?">🏠 청년 월세 지원</button>
+        <button data-q="전입신고 어떻게 하나요?">📄 전입신고</button>
+      </div>
+      <form class="chat-input" id="chatForm">
+        <input type="text" id="chatText" placeholder="예) 우리 동네 가로등이 고장났어요" autocomplete="off">
+        <button type="submit" class="btn btn-primary">전송</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSALS -->
+<section class="section" id="proposals">
+  <div class="container">
+    <p class="sec-eyebrow">시민 제안 · 공감</p>
+    <h2>당신의 아이디어가 광주의 정책이 됩니다</h2>
+    <p class="sec-sub">공감 <b>100</b>에 도달한 제안은 담당 부서가 30일 안에 공식 답변합니다. (데모: 브라우저에만 저장됩니다)</p>
+    <div class="proposal-layout">
+      <form class="card proposal-form" id="proposalForm">
+        <h3>새 제안 등록</h3>
+        <label>분야
+          <select id="pCat">
+            <option>교통</option><option>환경</option><option>복지</option><option>문화·관광</option><option>청년</option><option>기타</option>
+          </select>
+        </label>
+        <label>제목
+          <input type="text" id="pTitle" placeholder="예) 상무지구 자전거 도로 연결" required maxlength="60">
+        </label>
+        <label>내용
+          <textarea id="pBody" rows="4" placeholder="제안 배경과 기대 효과를 적어주세요" required maxlength="500"></textarea>
+        </label>
+        <button type="submit" class="btn btn-primary">제안 등록하기</button>
+      </form>
+      <div class="proposal-list" id="proposalList"><!-- JS 렌더링 --></div>
+    </div>
+  </div>
+</section>
+
+<!-- VOTE -->
+<section class="section section-alt" id="vote">
+  <div class="container">
+    <p class="sec-eyebrow">정책 라이브 투표</p>
+    <h2>2026 주민참여예산, 어디에 먼저 쓸까요?</h2>
+    <p class="sec-sub">1인 1표 · 결과 실시간 공개 (데모: 브라우저에만 저장됩니다)</p>
+    <div class="card vote-card" id="voteCard">
+      <div class="vote-options" id="voteOptions"><!-- JS 렌더링 --></div>
+      <p class="vote-meta" id="voteMeta"></p>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section class="section" id="dashboard">
+  <div class="container">
+    <p class="sec-eyebrow">행정 투명 대시보드</p>
+    <h2>오늘의 광주 행정, 숨김없이 공개합니다</h2>
+    <div class="grid dash-grid">
+      <div class="card dash"><span class="dash-label">오늘 접수된 민원</span><strong data-count="1284">0</strong><span class="dash-note">전일 대비 +3.2%</span></div>
+      <div class="card dash"><span class="dash-label">이번 주 처리율</span><strong data-count="94">0</strong><span class="dash-note">단위: % · 목표 90%</span></div>
+      <div class="card dash"><span class="dash-label">부서 공식답변 완료 제안</span><strong data-count="57">0</strong><span class="dash-note">누적 · 2026년</span></div>
+      <div class="card dash"><span class="dash-label">주민참여예산 집행률</span><strong data-count="61">0</strong><span class="dash-note">단위: % · 2026 상반기</span></div>
+    </div>
+    <p class="fineprint">※ 시연용 가상 수치 · 정식 오픈 시 시 내부 시스템·공공데이터포털과 실시간 연계</p>
+  </div>
+</section>
+
+<!-- DISTRICTS -->
+<section class="section section-alt" id="districts">
+  <div class="container">
+    <p class="sec-eyebrow">우리동네 광주</p>
+    <h2>5개 자치구, 우리 동네 이야기</h2>
+    <div class="grid district-grid">
+      <div class="card district"><h3>동구</h3><p class="d-issue">🔥 이번 주 이슈</p><p>충장로 상권 활성화 야시장 — 시민 제안 공감 진행 중 (87/100)</p></div>
+      <div class="card district"><h3>서구</h3><p class="d-issue">🔥 이번 주 이슈</p><p>상무지구 자전거 도로 연결 구간 의견 수렴 (D-5)</p></div>
+      <div class="card district"><h3>남구</h3><p class="d-issue">🔥 이번 주 이슈</p><p>푸른길 공원 야간 조명 개선 공사 — 6월 착공 확정</p></div>
+      <div class="card district"><h3>북구</h3><p class="d-issue">🔥 이번 주 이슈</p><p>전남대 인근 청년 주거 지원 설명회 — 참여 신청 접수 중</p></div>
+      <div class="card district"><h3>광산구</h3><p class="d-issue">🔥 이번 주 이슈</p><p>수완지구 통학로 안전 펜스 설치 — 투표 결과 1위 반영</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="section" id="roadmap">
+  <div class="container">
+    <p class="sec-eyebrow">로드맵</p>
+    <h2>데모에서 정식 서비스까지</h2>
+    <ol class="roadmap">
+      <li><b>MVP(현재)</b> — 프로토타입: AI 챗 데모 · 제안/공감 · 라이브 투표 · 대시보드 UI</li>
+      <li><b>+3개월</b> — Claude API 실 챗봇 · 간편인증 · 제안 DB화 · 국민신문고 연계</li>
+      <li><b>+6개월</b> — 공무원용 AI 콘텐츠 스튜디오 · 부서 답변 워크플로</li>
+      <li><b>+12개월</b> — 주민참여예산 정식 투표(본인인증) · 공공데이터 개방 API</li>
+    </ol>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <p><b>광주ON</b> — 시민과 행정을 잇는 AI 통합 플랫폼 (기획 시연용 프로토타입)</p>
+    <p class="fineprint">본 사이트의 모든 기관명 연계·수치·AI 응답은 시연용 가상 데이터이며, 광주광역시의 공식 서비스가 아닙니다.<br>기획 문서: <a href="PRODUCT.md" target="_blank">PRODUCT.md</a></p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
